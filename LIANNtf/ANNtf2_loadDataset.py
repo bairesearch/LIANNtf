@@ -13,7 +13,7 @@ see ANNtf2.py
 see ANNtf2.py
 
 # Description:
-ANNtf2 load dataset
+ANNtf load dataset
 
 # Datasets:
 
@@ -183,14 +183,12 @@ def loadtxtBasic(filename, delimiter=','):
 	#print("data = ", data)
 	return data
 	
-def loadtxt(filename, delimiter=',', classColumnFirst=True, numeriseClassColumn=True):
+def loadtxt(filename, delimiter=',', classColumnFirst=True, numeriseClassColumn=True, dtype=float):
 
-	
 	absFilePath = createFileAbsPath(filename)
 
 	#print("absFilePath = ", absFilePath)
 
-	dtype=float
 	classNamesDict = {}
 	classIndexMax = 1
 	
@@ -316,12 +314,12 @@ def hotEncode(y, maxY):
 	yHotEncoded[y-1] = 1
 	return yHotEncoded
 			
-def loadDatasetType1(datasetFileNameX, datasetFileNameY):
+def loadDatasetType1(datasetFileNameX, datasetFileNameY, addOnlyPriorUnidirectionalPOSinputToTrain=False, dataType=float):
 	
-	#all_X = genfromtxt(datasetFileNameX, delimiter=' ')
-	#all_Y = genfromtxt(datasetFileNameY, delimiter=' ')
-	all_X = iter_loadtxt(datasetFileNameX, delimiter=' ')
-	all_Y = iter_loadtxt(datasetFileNameY, delimiter=' ')
+	#all_X = genfromtxt(datasetFileNameX, delimiter=' ', dtype=dataType)
+	#all_Y = genfromtxt(datasetFileNameY, delimiter=' ', dtype=dataType)
+	all_X = iter_loadtxt(datasetFileNameX, delimiter=' ', dtype=dataType)
+	all_Y = iter_loadtxt(datasetFileNameY, delimiter=' ', dtype=dataType)
 	
 	all_Y = np.array(all_Y, np.uint8)
 
@@ -334,6 +332,10 @@ def loadDatasetType1(datasetFileNameX, datasetFileNameY):
 	datasetNumExamples = all_Y.shape[0]
 	datasetNumFeatures = all_X.shape[1]
 	datasetNumClasses = all_Y.shape[1]
+
+	if(addOnlyPriorUnidirectionalPOSinputToTrain):
+		all_X = all_X[:, 0:datasetNumFeatures//2]
+		datasetNumFeatures = datasetNumFeatures//2
 
 	datasetNumExamplesTrain = int(float(datasetNumExamples)*percentageDatasetTrain/100.0)
 	datasetNumExamplesTest = int(float(datasetNumExamples)*(100.0-percentageDatasetTrain)/100.0)
@@ -366,17 +368,17 @@ def loadDatasetType1(datasetFileNameX, datasetFileNameY):
 	train_y, test_y = np.array(train_y, np.uint8), np.array(test_y, np.uint8) 
 	#https://www.tensorflow.org/api_docs/python/tf/keras/datasets/mnist/load_data?version=stable
 	#https://medium.com/@HojjatA/could-not-find-valid-device-for-node-while-eagerly-executing-8f2ff588d1e
-
+	
 	paddingTagIndexNA = paddingTagIndex
 	return numberOfFeaturesPerWord, paddingTagIndexNA, datasetNumFeatures, datasetNumClasses, datasetNumExamples, train_x, train_y, test_x, test_y
 
 
-def loadDatasetType2(datasetFileName, classColumnFirst=True, equaliseNumberExamplesPerClass=False):
+def loadDatasetType2(datasetFileName, classColumnFirst=True, equaliseNumberExamplesPerClass=False, dataType=float):
 
 	numeriseClassColumn = True
 	
 	#dataRaw = loadtxtBasic(datasetFileName, delimiter=',')
-	dataRaw = loadtxt(datasetFileName, delimiter=',', classColumnFirst=classColumnFirst, numeriseClassColumn=numeriseClassColumn)
+	dataRaw = loadtxt(datasetFileName, delimiter=',', classColumnFirst=classColumnFirst, numeriseClassColumn=numeriseClassColumn, dtype=dataType)
 	
 	#equaliseNumberExamplesPerClass
 	if(equaliseNumberExamplesPerClass):
@@ -463,11 +465,7 @@ def loadDatasetType2(datasetFileName, classColumnFirst=True, equaliseNumberExamp
 	return datasetNumFeatures, datasetNumClasses, datasetNumExamples, train_x, train_y, test_x, test_y
 	
 
-def loadDatasetType3(datasetFileNameX, generatePOSunambiguousInput, onlyAddPOSunambiguousInputToTrain, useSmallSentenceLengths):
-	
-	#parameters;
-	getDataAsBinary = False	#boolean type does not allow padding	
-	getDataAsInt = True
+def loadDatasetType3(datasetFileNameX, generatePOSunambiguousInput, onlyAddPOSunambiguousInputToTrain, useSmallSentenceLengths, dataType=float):
 		
 	padExamples = True
 	cropExamples = True
@@ -485,7 +483,7 @@ def loadDatasetType3(datasetFileNameX, generatePOSunambiguousInput, onlyAddPOSun
 	generateNegativeExamples = False	#for backprop training
 	generateYvalues = True
 	if(generateYvalues):
-		if(getDataAsBinary):
+		if(dataType == bool):
 			yClassPositive = True
 			yClassNegative = False	
 		else:
@@ -494,15 +492,8 @@ def loadDatasetType3(datasetFileNameX, generatePOSunambiguousInput, onlyAddPOSun
 		
 	#all_X = genfromtxt(datasetFileNameX, delimiter=' ')
 	paddingCharacter = str(paddingTagIndex)[0]
-	if(getDataAsBinary):
-		dataType = bool
-	else:
-		if(getDataAsInt):
-			dataType = int
-		else:
-			dataType = float
 	
-	if(getDataAsBinary):
+	if(dataType == bool):
 		xPOStagActive = True
 		xPOStagInactive = False	
 	else:
@@ -706,9 +697,9 @@ def loadDatasetType3(datasetFileNameX, generatePOSunambiguousInput, onlyAddPOSun
 	
 	#print(train_x)
 	
-	if(not getDataAsBinary):	
+	if(dataType != bool):	
 		# Convert x/y data to float32/uint8.
-		if(getDataAsInt):
+		if(dataType == int):
 			train_x, test_x = np.array(train_x, np.int32), np.array(test_x, np.int32)
 		else:
 			train_x, test_x = np.array(train_x, np.float32), np.array(test_x, np.float32)
@@ -752,7 +743,7 @@ def generatePOSambiguityInfoUnambiguousPermutationArray(POSambiguityInfoUnambigu
 
 
 #useSmallSentenceLengths: eliminate smaller sentences from dataset (do not crop them)
-def loadDatasetType4(datasetFileNameX, AEANNsequentialInputTypesMaxLength, useSmallSentenceLengths, AEANNsequentialInputTypeTrainWordVectors):
+def loadDatasetType4(datasetFileNameX, sequentialInputTypesMaxLength, useSmallSentenceLengths, sequentialInputTypeTrainWordVectors):
 	
 	splitTextDatasetByWikiTags = True
 	
@@ -785,10 +776,10 @@ def loadDatasetType4(datasetFileNameX, AEANNsequentialInputTypesMaxLength, useSm
 				wordsText = tokenize.word_tokenize(sentence)
 				sentenceLengthCheck = True
 				if(useSmallSentenceLengths):
-					if(len(wordsText) > AEANNsequentialInputTypesMaxLength[1]):
+					if(len(wordsText) > sequentialInputTypesMaxLength[1]):
 						sentenceLengthCheck = False				
 				if(sentenceLengthCheck):
-					if(AEANNsequentialInputTypeTrainWordVectors):
+					if(sequentialInputTypeTrainWordVectors):
 						words = []
 						for wordIndex, word in enumerate(wordsText):
 							#print("\t\t\t\twordIndex = ", wordIndex)

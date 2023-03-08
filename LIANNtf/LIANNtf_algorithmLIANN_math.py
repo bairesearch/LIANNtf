@@ -1,7 +1,7 @@
 """LIANNtf_algorithmLIANN_math.py
 
 # Author:
-Richard Bruce Baxter - Copyright (c) 2020-2022 Baxter AI (baxterai.com)
+Richard Bruce Baxter - Copyright (c) 2021-2023 Baxter AI (baxterai.com)
 
 # License:
 MIT License
@@ -10,7 +10,6 @@ MIT License
 see LIANNtf_main.py
 
 conda install tensorflow-probability (LIANNtf_algorithmLIANN_math:covarianceMatrix code only)
-	conda install keras
 conda install scikit-learn (LIANNtf_algorithmLIANN_math:SVD/PCA code only)
 
 # Usage:
@@ -24,13 +23,13 @@ LIANNtf algorithm LIANN math (PCA simulation, correlation matrix, covariance mat
 import tensorflow as tf
 import numpy as np
 from ANNtf2_operations import *	#generateParameterNameSeq, generateParameterName, defineNetworkParameters
-import tensorflow_probability as tfp
+#import tensorflow_probability as tfp
 
 np.set_printoptions(linewidth=np.inf)
 
 #only required by LIANNtf_algorithmLIANN_math:SVD/PCA
-from sklearn.decomposition import TruncatedSVD
-from sklearn.decomposition import PCA
+#from sklearn.decomposition import TruncatedSVD
+#from sklearn.decomposition import PCA
 from sklearn.utils.extmath import randomized_svd
 
 SVDmatrixTypeExamplesByNeurons = True

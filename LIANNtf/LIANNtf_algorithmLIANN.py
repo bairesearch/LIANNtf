@@ -1,7 +1,7 @@
 """LIANNtf_algorithmLIANN.py
 
 # Author:
-Richard Bruce Baxter - Copyright (c) 2020-2022 Baxter AI (baxterai.com)
+Richard Bruce Baxter - Copyright (c) 2021-2023 Baxter AI (baxterai.com)
 
 # License:
 MIT License
@@ -112,7 +112,6 @@ elif(learningAlgorithmMaximiseAndEvenSignalStochasticOptimise):
 #learning algorithm customisation;
 if(learningAlgorithmNone):
 	#can pass different task datasets through a shared randomised net
-	#note learningAlgorithmCorrelationReset requires supportSkipLayers - see LIANNtf_algorithmIndependentInput/AEANNtf_algorithmIndependentInput:learningAlgorithmLIANN for similar implementation
 	#positiveExcitatoryWeights = True	#optional
 	generateDeepNetwork = True	#optional	#used for algorithm testing
 	generateVeryLargeNetwork = True

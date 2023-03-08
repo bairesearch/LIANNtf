@@ -1,7 +1,7 @@
 """LIANNtf_main.py
 
 # Author:
-Richard Bruce Baxter - Copyright (c) 2020-2022 Baxter AI (baxterai.com)
+Richard Bruce Baxter - Copyright (c) 2021-2023 Baxter AI (baxterai.com)
 
 # License:
 MIT License
@@ -9,18 +9,18 @@ MIT License
 # Installation:
 Python 3 and Tensorflow 2
 
-conda create -n lianntf2 python=3.9
-source activate lianntf2
+conda create -n anntf2 python=3.9
+source activate anntf2
 conda install -c tensorflow tensorflow=2.6
 conda install tensorflow-probability (LIANNtf_algorithmLIANN_math:covarianceMatrix code only)
-	conda install keras
 conda install scikit-learn (LIANNtf_algorithmLIANN_math:SVD/PCA code only)
 
 # Usage:
+source activate anntf2
 python3 LIANNtf_main.py
 
 # Description:
-LIANNtf - train local inhibition artificial neural network (LIANN/VICRegANN)
+LIANNtf - train local inhibition artificial neural network (LIANN)
 
 """
 
@@ -41,16 +41,13 @@ from numpy import random
 import ANNtf2_loadDataset
 
 #select algorithm:
-#algorithm = "LIANN"	#local inhibition artificial neural network (force neural independence) #incomplete+non-convergent
-algorithm = "VICRegANN"	#Variance-Invariance-Covariance Regularization artificial neural network - supervised greedy learning implementation (force neural independence)	#incomplete
+algorithm = "LIANN"	#local inhibition artificial neural network (force neural independence) #incomplete+non-convergent
 
 suppressGradientDoNotExistForVariablesWarnings = True
 
 costCrossEntropyWithLogits = False
 if(algorithm == "LIANN"):
-	import LIANNtf_algorithmLIANN as LIANNtf_algorithm	
-elif(algorithm == "VICRegANN"):
-	import LIANNtf_algorithmVICRegANN as LIANNtf_algorithm	
+	import LIANNtf_algorithmLIANN as LIANNtf_algorithm
 							
 #learningRate, trainingSteps, batchSize, displayStep, numEpochs = -1
 
@@ -88,11 +85,6 @@ if(algorithm == "LIANN"):
 			numberOfNetworks = int(100/LIANNtf_algorithm.generateLargeNetworkRatio)	#normalise the number of networks based on the network layer size
 			if(numberOfNetworks == 1):	#train at least 2 networks (required for tensorflow code execution consistency)
 				trainMultipleNetworks = False
-elif(algorithm == "VICRegANN"):
-	dataset = "SmallDataset"
-	equaliseNumberExamplesPerClass = True	#required as numberExamplesPairsClassX = numberExamplesClassX^2
-	#trainMultipleNetworks not currently supported
-				
 								
 if(dataset == "SmallDataset"):
 	smallDatasetIndex = 0 #default: 0 (New Thyroid)
@@ -134,10 +126,7 @@ xmlDatasetFileNameEnd = ".xml"
 
 
 def generateTFtrainDataFromNParrays(train_x, train_y, shuffleSize, batchSize, datasetNumClasses=None):
-	if(algorithm == "VICRegANN"):
-		return LIANNtf_algorithm.generateTFtrainDataFromNParraysVICRegANN(train_x, train_y, shuffleSize, batchSize, datasetNumClasses)
-	else:
-		return ANNtf2_operations.generateTFtrainDataFromNParrays(train_x, train_y, shuffleSize, batchSize)
+	return ANNtf2_operations.generateTFtrainDataFromNParrays(train_x, train_y, shuffleSize, batchSize)
 		
 	
 def defineTrainingParameters(dataset, numberOfFeaturesPerWord=None, paddingTagIndex=None):
@@ -186,14 +175,8 @@ def trainBatch(e, batchIndex, batchX, batchY, datasetNumClasses, numberOfLayers,
 				executeOptimisation(batchX, batchY, datasetNumClasses, numberOfLayers, optimizer, networkIndex)
 
 		executeLearningLIANN(e, batchIndex, batchX, batchY, networkIndex)
-	elif(algorithm == "VICRegANN"):
-		if(LIANNtf_algorithm.trainGreedy):	#if(l is not None):
-			executeOptimisation(batchX, batchY, datasetNumClasses, numberOfLayers, optimizer, networkIndex, l)
-		else:
-			executeOptimisation(batchX, batchY, datasetNumClasses, numberOfLayers, optimizer, networkIndex, numberOfLayers-1)
-			executeOptimisation(batchX, batchY, datasetNumClasses, numberOfLayers, optimizer, networkIndex, numberOfLayers)
 	else:
-		print("trainBatch only supports LIANN/VICRegANN")
+		print("trainBatch only supports LIANN")
 		exit()						
 			
 	pred = None
@@ -220,7 +203,7 @@ def executeLearningLIANN(e, batchIndex, x, y, networkIndex):
 		pred = LIANNtf_algorithm.neuralNetworkPropagationLIANNtrainIntro(x, y, networkIndex)
 
 		
-#parameter l is only currently used for algorithm AEANN
+#parameter l is not currently used
 def executeOptimisation(x, y, datasetNumClasses, numberOfLayers, optimizer, networkIndex=1, l=None):
 	with tf.GradientTape() as gt:
 		loss, acc = calculatePropagationLoss(x, y, datasetNumClasses, numberOfLayers, costCrossEntropyWithLogits, networkIndex, l)
@@ -240,23 +223,6 @@ def executeOptimisation(x, y, datasetNumClasses, numberOfLayers, optimizer, netw
 		trainableVariables = Wlist + Blist
 		WlistLength = len(Wlist)
 		BlistLength = len(Blist)
-	elif(algorithm == "VICRegANN"):
-		Wlist = []
-		Blist = []
-		if(l == numberOfLayers):
-			Wlist.append(LIANNtf_algorithm.W[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l, "W")])
-			Blist.append(LIANNtf_algorithm.B[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l, "B")])
-		else:
-			if(LIANNtf_algorithm.trainGreedy):
-				Wlist.append(LIANNtf_algorithm.W[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l, "W")])
-				Blist.append(LIANNtf_algorithm.B[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l, "B")])
-			else:
-				for l1 in range(1, l):
-					Wlist.append(LIANNtf_algorithm.W[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l1, "W")])
-					Blist.append(LIANNtf_algorithm.B[ANNtf2_operations.generateParameterNameNetwork(networkIndex, l1, "B")])				
-		trainableVariables = Wlist + Blist
-		WlistLength = len(Wlist)
-		BlistLength = len(Blist)
 			
 	gradients = gt.gradient(loss, trainableVariables)
 						
@@ -271,25 +237,15 @@ def executeOptimisation(x, y, datasetNumClasses, numberOfLayers, optimizer, netw
 		
 
 def calculatePropagationLoss(x, y, datasetNumClasses, numberOfLayers, costCrossEntropyWithLogits, networkIndex=1, l=None):
-	if(algorithm == "VICRegANN"):
-		if(l==numberOfLayers):
-			pred = LIANNtf_algorithm.neuralNetworkPropagationVICRegANNtrainFinalLayer(x, l, networkIndex)
-			target = y[:, 0]	#only optimise final layer weights for first experience in matched class pair
-			loss = ANNtf2_operations.calculateLossCrossEntropy(pred, target, datasetNumClasses, costCrossEntropyWithLogits)	
-			acc = ANNtf2_operations.calculateAccuracy(pred, target)	#only valid for softmax class targets 			
-		else:
-			loss = LIANNtf_algorithm.neuralNetworkPropagationVICRegANNtrain(x, l, networkIndex)
-			acc = None	#not used when optimising hidden layer weights
-	else:
-		pred = neuralNetworkPropagation(x, networkIndex)
-		target = y
-		loss = ANNtf2_operations.calculateLossCrossEntropy(pred, target, datasetNumClasses, costCrossEntropyWithLogits)	
-		acc = ANNtf2_operations.calculateAccuracy(pred, target)	#only valid for softmax class targets 
-		#print("x = ", x)
-		#print("y = ", y)
-		#print("2 loss = ", loss)
-		#print("2 acc = ", acc)
-			
+	pred = neuralNetworkPropagation(x, networkIndex)
+	target = y
+	loss = ANNtf2_operations.calculateLossCrossEntropy(pred, target, datasetNumClasses, costCrossEntropyWithLogits)	
+	acc = ANNtf2_operations.calculateAccuracy(pred, target)	#only valid for softmax class targets 
+	#print("x = ", x)
+	#print("y = ", y)
+	#print("2 loss = ", loss)
+	#print("2 acc = ", acc)
+
 	return loss, acc
 
 
@@ -567,11 +523,6 @@ if __name__ == "__main__":
 	if(algorithm == "LIANN"):
 		if(trainMultipleNetworks):
 			train(trainMultipleNetworks=trainMultipleNetworks)
-		else:
-			trainMinimal()
-	elif(algorithm == "VICRegANN"):
-		if(LIANNtf_algorithm.trainGreedy):
-			train(greedy=True)
 		else:
 			trainMinimal()
 			
